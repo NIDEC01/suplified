@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, MapPin, Clock, Phone } from "lucide-react";
 import supplierIcon from "@/assets/supplier-icon.jpg";
+import SearchForm from "@/components/SearchForm";
+import { useState } from "react";
+import { supplierValidation } from "@/lib/security";
+import { toast } from "@/hooks/use-toast";
 
 const suppliers = [
   {
@@ -39,6 +43,42 @@ const suppliers = [
 ];
 
 const VendorMarketplace = () => {
+  const [filteredSuppliers, setFilteredSuppliers] = useState(suppliers);
+
+  const handleSearch = (query: string) => {
+    try {
+      const filtered = suppliers.filter(supplier => 
+        supplier.name.toLowerCase().includes(query.toLowerCase()) ||
+        supplier.specialties.some(specialty => 
+          specialty.toLowerCase().includes(query.toLowerCase())
+        )
+      );
+      setFilteredSuppliers(filtered);
+      
+      toast({
+        title: "Search completed",
+        description: `Found ${filtered.length} suppliers matching "${query}"`,
+      });
+    } catch (error) {
+      toast({
+        title: "Search failed",
+        description: "Please try again with a different search term.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Validate supplier data on component mount
+  const validatedSuppliers = suppliers.filter(supplier => {
+    try {
+      supplierValidation.parse(supplier);
+      return true;
+    } catch {
+      console.warn('Invalid supplier data detected:', supplier.name);
+      return false;
+    }
+  });
+
   return (
     <div className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -49,10 +89,14 @@ const VendorMarketplace = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Browse trusted suppliers near you, compare prices, and place orders with just a few taps.
           </p>
+          
+          <div className="flex justify-center mt-8">
+            <SearchForm onSearch={handleSearch} />
+          </div>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {suppliers.map((supplier) => (
+          {filteredSuppliers.map((supplier) => (
             <Card key={supplier.id} className={`relative transition-all duration-300 hover:shadow-green hover:-translate-y-1 ${supplier.featured ? 'ring-2 ring-secondary' : ''}`}>
               {supplier.featured && (
                 <Badge className="absolute -top-2 -right-2 bg-secondary text-secondary-foreground">
